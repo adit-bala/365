@@ -1,101 +1,72 @@
-import Image from "next/image";
+import { Client } from "@notionhq/client";
+import { cache } from 'react';
 
-export default function Home() {
+const verifyNotionCredentials = cache(async () => {
+  const notion = new Client({ auth: process.env.NOTION_API_KEY });
+  const databaseId = process.env.NOTION_DATABASE_ID;
+
+  if (!databaseId) {
+    return { isValid: false, error: 'NOTION_DATABASE_ID is not defined' };
+  }
+
+  try {
+    // Verify API key by fetching current user
+    await notion.users.me();
+
+    // Verify database ID by retrieving database metadata
+    await notion.databases.retrieve({ database_id: databaseId });
+
+    return { isValid: true };
+  } catch (error) {
+    console.error("Error verifying Notion credentials:", error);
+    if (error.code === 'unauthorized') {
+      return { isValid: false, error: 'Invalid Notion API Key' };
+    } else if (error.code === 'object_not_found') {
+      return { isValid: false, error: 'Invalid Notion Database ID' };
+    }
+    return { isValid: false, error: 'An unknown error occurred' };
+  }
+});
+
+const getNotionData = cache(async () => {
+  const notion = new Client({ auth: process.env.NOTION_API_KEY });
+  const databaseId = process.env.NOTION_DATABASE_ID;
+
+  if (!databaseId) {
+    throw new Error('NOTION_DATABASE_ID is not defined');
+  }
+
+  const response = await notion.databases.query({
+    database_id: databaseId,
+  });
+
+  return response.results;
+});
+
+export default async function Home() {
+  const { isValid, error } = await verifyNotionCredentials();
+  
+  if (!isValid) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold mb-4 text-red-600">Error: {error}</h1>
+        <p>Please check your NOTION_API_KEY and NOTION_DATABASE_ID in the .env file.</p>
+      </div>
+    );
+  }
+
+  const notionData = await getNotionData();
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Notion Data</h1>
+      <ul>
+        {notionData.map((page: any) => (
+          <li key={page.id} className="mb-2">
+            {page.properties.Name?.title[0]?.plain_text || 'Unnamed'}
           </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        ))}
+      </ul>
     </div>
   );
 }
