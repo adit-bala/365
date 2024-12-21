@@ -1,72 +1,34 @@
-import { Client } from "@notionhq/client";
-import { cache } from 'react';
+import { ContributionGraph } from '../components/contribution-graph'
+import { getPropertiesForBlogPostEntries } from './lib/notion'
 
-const verifyNotionCredentials = cache(async () => {
-  const notion = new Client({ auth: process.env.NOTION_API_KEY });
-  const databaseId = process.env.NOTION_DATABASE_ID;
+export const revalidate = 60;
 
-  if (!databaseId) {
-    return { isValid: false, error: 'NOTION_DATABASE_ID is not defined' };
-  }
+export default async function HomePage() {
+  const entries = await getPropertiesForBlogPostEntries(process.env.NOTION_WRITING_DATABASE_ID);
 
-  try {
-    // Verify API key by fetching current user
-    await notion.users.me();
-
-    // Verify database ID by retrieving database metadata
-    await notion.databases.retrieve({ database_id: databaseId });
-
-    return { isValid: true };
-  } catch (error) {
-    console.error("Error verifying Notion credentials:", error);
-    if (error.code === 'unauthorized') {
-      return { isValid: false, error: 'Invalid Notion API Key' };
-    } else if (error.code === 'object_not_found') {
-      return { isValid: false, error: 'Invalid Notion Database ID' };
-    }
-    return { isValid: false, error: 'An unknown error occurred' };
-  }
-});
-
-const getNotionData = cache(async () => {
-  const notion = new Client({ auth: process.env.NOTION_API_KEY });
-  const databaseId = process.env.NOTION_DATABASE_ID;
-
-  if (!databaseId) {
-    throw new Error('NOTION_DATABASE_ID is not defined');
-  }
-
-  const response = await notion.databases.query({
-    database_id: databaseId,
-  });
-
-  return response.results;
-});
-
-export default async function Home() {
-  const { isValid, error } = await verifyNotionCredentials();
-  
-  if (!isValid) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">Error: {error}</h1>
-        <p>Please check your NOTION_API_KEY and NOTION_DATABASE_ID in the .env file.</p>
-      </div>
-    );
-  }
-
-  const notionData = await getNotionData();
+  // Transform entries to match the PostInfo type expected by ContributionGraph
+  const formattedEntries = entries.map(entry => ({
+    postId: entry.postId,
+    title: entry.title,
+    preview: entry.preview || '',
+    date: entry.date || '' // Ensure date is always a string
+  }));
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Notion Data</h1>
-      <ul>
-        {notionData.map((page: any) => (
-          <li key={page.id} className="mb-2">
-            {page.properties.Name?.title[0]?.plain_text || 'Unnamed'}
-          </li>
-        ))}
-      </ul>
+    <div className="min-h-screen bg-[#0d1117] text-[#e6edf3]">
+      <main className="container mx-auto px-4 py-16 space-y-16">
+        <header className="text-center space-y-4">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            365 Days of writing
+          </h1>
+          <p className="text-xl text-[#7d8590] max-w-2xl mx-auto mb-4">
+            Documenting my progress as I write every day for a year.
+          </p>          
+        </header>
+
+        <ContributionGraph initialEntries={formattedEntries} />
+      </main>
     </div>
-  );
+  )
 }
+
