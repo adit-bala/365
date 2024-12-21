@@ -74,15 +74,15 @@ export function ContributionGraph({ initialEntries }: ContributionGraphProps) {
 
     const getSquareClass = (dateStr: string) => {
       const entry = initialEntries.find(e => e.date === dateStr)
-      if (!entry) return 'bg-[#161b22] hover:bg-[#1f2428]'
+      if (!entry) return 'bg-[#1a2028] hover:bg-[#2a3038]'
       return entry.postId 
-        ? 'bg-[#26a641] hover:bg-[#2ea043] cursor-pointer' 
-        : 'bg-[#0e4429] hover:bg-[#196c39]'
+        ? 'bg-[#39d353] hover:bg-[#4ae664] cursor-pointer'
+        : 'bg-[#2ea043] hover:bg-[#3cbc55]'
     }
 
     return (
       <TooltipProvider>
-        <div className="rounded-lg bg-[#0d1117] p-4 text-[#7d8590]">
+        <div className="rounded-lg bg-[#0a0d13] p-4 text-[#e6edf3]">
           <div className="space-y-2">
             {/* Months row */}
             <div className="flex text-xs">
@@ -132,11 +132,11 @@ export function ContributionGraph({ initialEntries }: ContributionGraphProps) {
 
             {/* Legend */}
             <div className="flex items-center justify-end gap-2 text-xs pt-4">
+            <div className="w-[10px] h-[10px] rounded-sm bg-[#1a2028]" />
               <span>No entry</span>
-              <div className="w-[10px] h-[10px] rounded-sm bg-[#161b22]" />
-              <div className="w-[10px] h-[10px] rounded-sm bg-[#0e4429]" />
+              <div className="w-[10px] h-[10px] rounded-sm bg-[#2ea043]" />
               <span>Entry without post</span>
-              <div className="w-[10px] h-[10px] rounded-sm bg-[#26a641]" />
+              <div className="w-[10px] h-[10px] rounded-sm bg-[#39d353]" />
               <span>Published post</span>
             </div>
           </div>
