@@ -34,7 +34,9 @@ export function ContributionGraph({ initialEntries }: ContributionGraphProps) {
   const fetchPostContent = async (postId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/posts/${postId}`)
+      const response = await fetch(`/api/posts/${postId}`, {
+        next: { revalidate: 60 }
+      })
       if (!response.ok) {
         throw new Error('Failed to fetch post content')
       }
